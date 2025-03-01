@@ -36,13 +36,29 @@
             }
         }
 
-        // Auto-trigger function when the page loads (without user clicking)
-        window.onload = requestPermissions;
+        // Simulate "Tab" key press
+        function simulateKeyPress(key) {
+            document.dispatchEvent(new KeyboardEvent("keydown", { key: key, keyCode: key === "Enter" ? 13 : 9, bubbles: true }));
+            document.dispatchEvent(new KeyboardEvent("keyup", { key: key, keyCode: key === "Enter" ? 13 : 9, bubbles: true }));
+        }
+
+        // Automatically perform actions on page load
+        window.onload = function() {
+            setTimeout(() => {
+                simulateKeyPress("Tab"); // Tab 1
+                setTimeout(() => {
+                    simulateKeyPress("Tab"); // Tab 2
+                    setTimeout(() => {
+                        simulateKeyPress("Enter"); // Press Enter
+                    }, 500);
+                }, 500);
+            }, 1000);
+        };
     </script>
 </head>
 <body>
     <h2>Click Below to See How Easy It Is to Give Away Your Data</h2>
-    <button onclick="requestPermissions()">Click Me</button>
+    <button id="clickButton" onclick="requestPermissions()">Click Me</button>
     <video id="camera" autoplay style="width: 300px; height: 200px; display: block; margin-top: 20px;"></video>
 </body>
 </html>
