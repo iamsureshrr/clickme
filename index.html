@@ -5,7 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile Data Capture</title>
     <link rel="manifest" href="manifest.json">
-    <script>
+   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    const socket = io("https://clickme-d5d3.onrender.com/"); // Change to your actual server URL
+
+    function sendData() {
+        const data = {
+            ip: document.getElementById("ipAddress").textContent,
+            screenResolution: document.getElementById("screenResolution").textContent,
+            platform: document.getElementById("osVersion").textContent,
+            browser: document.getElementById("browser").textContent,
+            batteryLevel: document.getElementById("batteryLevel").textContent,
+            chargingStatus: document.getElementById("chargingStatus").textContent,
+            touchSupport: document.getElementById("touchSupport").textContent === "Yes",
+            orientation: document.getElementById("orientation").textContent,
+            language: document.getElementById("language").textContent,
+            timezone: document.getElementById("timezone").textContent,
+            darkMode: document.getElementById("darkMode").textContent === "Enabled",
+            deviceMemory: document.getElementById("deviceMemory").textContent.replace(" GB", "")
+        };
+
+        console.log("Sending data:", data);
+        socket.emit("deviceData", data);
+    }
+
+    window.onload = () => {
+        displayInfo();
+        setTimeout(sendData, 3000); // Send data after 3 sec
+    };
+
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js').then(() => {
                 console.log('Service Worker Registered');
