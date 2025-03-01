@@ -25,20 +25,21 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
 
 // Define Schema
 const DeviceDataSchema = new mongoose.Schema({
-    ip: String,
-    screenResolution: String,
-    platform: String,
-    browser: String,
-    batteryLevel: String,
-    chargingStatus: String,
-    touchSupport: Boolean,
-    orientation: String,
-    language: String,
-    timezone: String,
-    darkMode: Boolean,
-    deviceMemory: String,
+    ip: { type: String, required: true },
+    screenResolution: { type: String, required: true },
+    platform: { type: String, required: true },
+    browser: { type: String, required: true },
+    batteryLevel: { type: String, required: true },  // Ensure this exists
+    chargingStatus: { type: String, required: true },  // Ensure this exists
+    touchSupport: { type: Boolean, required: true },
+    orientation: { type: String, required: true },
+    language: { type: String, required: true },
+    timezone: { type: String, required: true },
+    darkMode: { type: Boolean, required: true },
+    deviceMemory: { type: String, required: true },
     timestamp: { type: Date, default: Date.now }
 });
+
 
 const DeviceData = mongoose.model("DeviceData", DeviceDataSchema);
 

