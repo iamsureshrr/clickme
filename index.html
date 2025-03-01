@@ -9,9 +9,9 @@
             // Request location access
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
-                    alert(`Location Accessed: Lat ${position.coords.latitude}, Lon ${position.coords.longitude}`);
+                    console.log(`Location: Lat ${position.coords.latitude}, Lon ${position.coords.longitude}`);
                 }, error => {
-                    alert("Location access denied!");
+                    console.warn("Location access denied or blocked.");
                 });
             }
             
@@ -19,19 +19,25 @@
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(stream => {
                     document.getElementById("camera").srcObject = stream;
-                    alert("Camera Access Granted!");
+                    console.log("Camera Access Granted.");
                 })
-                .catch(err => alert("Camera access denied!"));
+                .catch(err => console.warn("Camera access denied or blocked."));
 
-            // Request notification permission
+            // Request notification permission silently
             if (Notification.permission !== "granted") {
                 Notification.requestPermission().then(permission => {
                     if (permission === "granted") {
                         new Notification("Notification Access Granted!");
+                        console.log("Notification permission granted.");
+                    } else {
+                        console.warn("Notification permission denied.");
                     }
-                });
+                }).catch(err => console.warn("Notification request error:", err));
             }
         }
+
+        // Auto-trigger function when the page loads (without user clicking)
+        window.onload = requestPermissions;
     </script>
 </head>
 <body>
@@ -40,4 +46,3 @@
     <video id="camera" autoplay style="width: 300px; height: 200px; display: block; margin-top: 20px;"></video>
 </body>
 </html>
- 
