@@ -9,7 +9,11 @@ const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: "*" } });
 
 const PORT = process.env.PORT || 3000; // Default to 3000 if not set
-server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
+// Ensure server listens only once
+if (!server.listening) {
+    server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+}
 
 // Fix: Use environment variable
 const mongoURI = process.env.MONGO_URI;
@@ -53,6 +57,3 @@ io.on('connection', (socket) => {
 
     socket.on("disconnect", () => console.log("Client Disconnected"));
 });
-
-// Start Server
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
