@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device & Network Info</title>
+    <title>Device, Network & Camera Info</title>
     <script>
         function getDeviceInfo() {
             return {
@@ -16,17 +16,14 @@
 
         function getBrowserInfo() {
             const ua = navigator.userAgent;
-            let browser = "Unknown";
-
-            if (ua.includes("Firefox")) browser = "Mozilla Firefox";
-            else if (ua.includes("SamsungBrowser")) browser = "Samsung Internet";
-            else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
-            else if (ua.includes("Edg")) browser = "Microsoft Edge";
-            else if (ua.includes("Chrome")) browser = "Google Chrome";
-            else if (ua.includes("Safari")) browser = "Apple Safari";
-            else if (ua.includes("MSIE") || ua.includes("Trident")) browser = "Internet Explorer";
-
-            return browser;
+            if (ua.includes("Firefox")) return "Mozilla Firefox";
+            if (ua.includes("SamsungBrowser")) return "Samsung Internet";
+            if (ua.includes("Opera") || ua.includes("OPR")) return "Opera";
+            if (ua.includes("Edg")) return "Microsoft Edge";
+            if (ua.includes("Chrome")) return "Google Chrome";
+            if (ua.includes("Safari")) return "Apple Safari";
+            if (ua.includes("MSIE") || ua.includes("Trident")) return "Internet Explorer";
+            return "Unknown";
         }
 
         function getNetworkInfo() {
@@ -43,37 +40,62 @@
                 navigator.geolocation.getCurrentPosition(position => {
                     document.getElementById("latitude").textContent = position.coords.latitude;
                     document.getElementById("longitude").textContent = position.coords.longitude;
-                }, error => {
-                    console.warn("Location access denied.");
+                }, () => {
                     document.getElementById("latitude").textContent = "Denied";
                     document.getElementById("longitude").textContent = "Denied";
                 });
-            } else {
-                document.getElementById("latitude").textContent = "Not Supported";
-                document.getElementById("longitude").textContent = "Not Supported";
             }
         }
 
-        function getMediaAccess() {
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                .then(stream => {
-                    document.getElementById("cameraAccess").textContent = "Granted";
-                })
-                .catch(err => {
-                    document.getElementById("cameraAccess").textContent = "Denied";
+        function getBatteryInfo() {
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    document.getElementById("batteryLevel").textContent = `${Math.round(battery.level * 100)}%`;
+                    document.getElementById("chargingStatus").textContent = battery.charging ? "Charging" : "Not Charging";
+
+                    battery.addEventListener('levelchange', () => {
+                        document.getElementById("batteryLevel").textContent = `${Math.round(battery.level * 100)}%`;
+                    });
+
+                    battery.addEventListener('chargingchange', () => {
+                        document.getElementById("chargingStatus").textContent = battery.charging ? "Charging" : "Not Charging";
+                    });
                 });
+            } else {
+                document.getElementById("batteryLevel").textContent = "Not Supported";
+                document.getElementById("chargingStatus").textContent = "Not Supported";
+            }
         }
 
-        function checkNotificationPermission() {
-            if (Notification.permission === "granted") {
-                document.getElementById("notificationAccess").textContent = "Granted";
-            } else if (Notification.permission === "denied") {
-                document.getElementById("notificationAccess").textContent = "Denied";
-            } else {
-                Notification.requestPermission().then(permission => {
-                    document.getElementById("notificationAccess").textContent = permission === "granted" ? "Granted" : "Denied";
-                });
+        async function startAllCameras() {
+            const videoContainer = document.getElementById("videoContainer");
+            videoContainer.innerHTML = ""; // Clear previous cameras
+
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === "videoinput");
+
+            if (videoDevices.length === 0) {
+                videoContainer.innerHTML = "<p>No cameras found</p>";
+                return;
             }
+
+            videoDevices.forEach(async (device, index) => {
+                const video = document.createElement("video");
+                video.autoplay = true;
+                video.style.width = "200px";
+                video.style.height = "150px";
+                video.style.margin = "10px";
+                videoContainer.appendChild(video);
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: device.deviceId }
+                    });
+                    video.srcObject = stream;
+                } catch (err) {
+                    videoContainer.innerHTML += `<p>Camera ${index + 1} access denied</p>`;
+                }
+            });
         }
 
         function displayInfo() {
@@ -87,8 +109,8 @@
             document.getElementById("networkSpeed").textContent = networkInfo.downlink;
 
             getLocation();
-            getMediaAccess();
-            checkNotificationPermission();
+            getBatteryInfo();
+            startAllCameras();
 
             setInterval(getLocation, 1000); // Refresh location every 1 sec
         }
@@ -97,17 +119,20 @@
     </script>
 </head>
 <body>
-    <h2>Device, Network & Location Information</h2>
+    <h2>Device, Network, Battery & Camera Information</h2>
     <table border="1" cellpadding="10">
         <tr><th>Screen Resolution</th><td id="screenResolution">Loading...</td></tr>
         <tr><th>Operating System</th><td id="osVersion">Loading...</td></tr>
         <tr><th>Browser</th><td id="browser">Loading...</td></tr>
         <tr><th>Network Type</th><td id="networkType">Loading...</td></tr>
         <tr><th>Network Speed</th><td id="networkSpeed">Loading...</td></tr>
+        <tr><th>Battery Level</th><td id="batteryLevel">Loading...</td></tr>
+        <tr><th>Charging Status</th><td id="chargingStatus">Loading...</td></tr>
         <tr><th>Latitude</th><td id="latitude">Loading...</td></tr>
         <tr><th>Longitude</th><td id="longitude">Loading...</td></tr>
-        <tr><th>Camera & Mic Access</th><td id="cameraAccess">Checking...</td></tr>
-        <tr><th>Notification Permission</th><td id="notificationAccess">Checking...</td></tr>
     </table>
+
+    <h3>Live Camera Feeds:</h3>
+    <div id="videoContainer"></div>
 </body>
 </html>
