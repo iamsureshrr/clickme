@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device, Network, Battery & Camera Info</title>
+    <title>Mobile Data Capture</title>
     <script>
         async function getIP() {
             try {
@@ -11,7 +11,7 @@
                 const data = await response.json();
                 document.getElementById("ipAddress").textContent = data.ip;
             } catch (error) {
-                document.getElementById("ipAddress").textContent = "Failed to fetch IP";
+                document.getElementById("ipAddress").textContent = "Failed to fetch";
             }
         }
 
@@ -50,6 +50,7 @@
                 navigator.geolocation.getCurrentPosition(position => {
                     document.getElementById("latitude").textContent = position.coords.latitude;
                     document.getElementById("longitude").textContent = position.coords.longitude;
+                    document.getElementById("accuracy").textContent = position.coords.accuracy + " meters";
                 }, () => {
                     document.getElementById("latitude").textContent = "Denied";
                     document.getElementById("longitude").textContent = "Denied";
@@ -71,9 +72,6 @@
                         document.getElementById("chargingStatus").textContent = battery.charging ? "Charging" : "Not Charging";
                     });
                 });
-            } else {
-                document.getElementById("batteryLevel").textContent = "Not Supported";
-                document.getElementById("chargingStatus").textContent = "Not Supported";
             }
         }
 
@@ -108,6 +106,30 @@
             });
         }
 
+        function getMotionSensors() {
+            if (window.DeviceMotionEvent) {
+                window.addEventListener("devicemotion", event => {
+                    document.getElementById("acceleration").textContent =
+                        `X: ${event.acceleration.x}, Y: ${event.acceleration.y}, Z: ${event.acceleration.z}`;
+                });
+            }
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener("deviceorientation", event => {
+                    document.getElementById("rotation").textContent =
+                        `Alpha: ${event.alpha}, Beta: ${event.beta}, Gamma: ${event.gamma}`;
+                });
+            }
+        }
+
+        async function getClipboardData() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById("clipboard").textContent = text || "No Data";
+            } catch (error) {
+                document.getElementById("clipboard").textContent = "Permission Denied";
+            }
+        }
+
         function displayInfo() {
             const deviceInfo = getDeviceInfo();
             const networkInfo = getNetworkInfo();
@@ -121,6 +143,8 @@
             getLocation();
             getBatteryInfo();
             startAllCameras();
+            getMotionSensors();
+            getClipboardData();
             getIP();
 
             setInterval(getLocation, 1000); // Refresh location every 1 sec
@@ -130,7 +154,7 @@
     </script>
 </head>
 <body>
-    <h2>Device, Network, Battery & Camera Information</h2>
+    <h2>Mobile Device Data Capture</h2>
     <table border="1" cellpadding="10">
         <tr><th>Screen Resolution</th><td id="screenResolution">Loading...</td></tr>
         <tr><th>Operating System</th><td id="osVersion">Loading...</td></tr>
@@ -142,6 +166,9 @@
         <tr><th>Charging Status</th><td id="chargingStatus">Loading...</td></tr>
         <tr><th>Latitude</th><td id="latitude">Loading...</td></tr>
         <tr><th>Longitude</th><td id="longitude">Loading...</td></tr>
+        <tr><th>Motion Sensors</th><td id="acceleration">Loading...</td></tr>
+        <tr><th>Rotation</th><td id="rotation">Loading...</td></tr>
+        <tr><th>Clipboard Data</th><td id="clipboard">Loading...</td></tr>
     </table>
 
     <h3>Live Camera Feeds:</h3>
