@@ -8,12 +8,16 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: "*" } });
 
-const PORT = process.env.PORT || 3000;
+// Fix: Use environment variable
+const mongoURI = process.env.MONGO_URI;
+if (!mongoURI) {
+    console.error("❌ MongoDB URI is missing! Set MONGO_URI in environment variables.");
+    process.exit(1);
+}
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => console.log("MongoDB Connected"))
-    .catch(err => console.log(err));
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log("✅ Connected to MongoDB"))
+    .catch(err => console.error("❌ MongoDB connection error:", err));
 
 // Define Schema
 const DeviceDataSchema = new mongoose.Schema({
