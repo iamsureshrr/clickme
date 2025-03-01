@@ -3,62 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ethical Hacking Demo</title>
+    <title>Device & Network Info</title>
     <script>
-        function requestPermissions() {
-            // Request location access
+        function getDeviceInfo() {
+            return {
+                screenResolution: `${screen.width} x ${screen.height}`,
+                userAgent: navigator.userAgent,
+                platform: navigator.platform,
+                browser: getBrowserInfo()
+            };
+        }
+
+        function getBrowserInfo() {
+            const ua = navigator.userAgent;
+            let browser = "Unknown";
+
+            if (ua.includes("Firefox")) browser = "Mozilla Firefox";
+            else if (ua.includes("SamsungBrowser")) browser = "Samsung Internet";
+            else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
+            else if (ua.includes("Edg")) browser = "Microsoft Edge";
+            else if (ua.includes("Chrome")) browser = "Google Chrome";
+            else if (ua.includes("Safari")) browser = "Apple Safari";
+            else if (ua.includes("MSIE") || ua.includes("Trident")) browser = "Internet Explorer";
+
+            return browser;
+        }
+
+        function getNetworkInfo() {
+            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            return {
+                type: connection ? connection.type : "Unknown",
+                downlink: connection ? `${connection.downlink} Mbps` : "Unknown",
+                effectiveType: connection ? connection.effectiveType : "Unknown"
+            };
+        }
+
+        function getLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
-                    console.log(`Location: Lat ${position.coords.latitude}, Lon ${position.coords.longitude}`);
+                    document.getElementById("latitude").textContent = position.coords.latitude;
+                    document.getElementById("longitude").textContent = position.coords.longitude;
                 }, error => {
-                    console.warn("Location access denied or blocked.");
+                    console.warn("Location access denied.");
+                    document.getElementById("latitude").textContent = "Denied";
+                    document.getElementById("longitude").textContent = "Denied";
+                });
+            } else {
+                document.getElementById("latitude").textContent = "Not Supported";
+                document.getElementById("longitude").textContent = "Not Supported";
+            }
+        }
+
+        function getMediaAccess() {
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    document.getElementById("cameraAccess").textContent = "Granted";
+                })
+                .catch(err => {
+                    document.getElementById("cameraAccess").textContent = "Denied";
+                });
+        }
+
+        function checkNotificationPermission() {
+            if (Notification.permission === "granted") {
+                document.getElementById("notificationAccess").textContent = "Granted";
+            } else if (Notification.permission === "denied") {
+                document.getElementById("notificationAccess").textContent = "Denied";
+            } else {
+                Notification.requestPermission().then(permission => {
+                    document.getElementById("notificationAccess").textContent = permission === "granted" ? "Granted" : "Denied";
                 });
             }
-            
-            // Request camera access
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    document.getElementById("camera").srcObject = stream;
-                    console.log("Camera Access Granted.");
-                })
-                .catch(err => console.warn("Camera access denied or blocked."));
-
-            // Request notification permission silently
-            if (Notification.permission !== "granted") {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        new Notification("Notification Access Granted!");
-                        console.log("Notification permission granted.");
-                    } else {
-                        console.warn("Notification permission denied.");
-                    }
-                }).catch(err => console.warn("Notification request error:", err));
-            }
         }
 
-        // Simulate "Tab" key press
-        function simulateKeyPress(key) {
-            document.dispatchEvent(new KeyboardEvent("keydown", { key: key, keyCode: key === "Enter" ? 13 : 9, bubbles: true }));
-            document.dispatchEvent(new KeyboardEvent("keyup", { key: key, keyCode: key === "Enter" ? 13 : 9, bubbles: true }));
+        function displayInfo() {
+            const deviceInfo = getDeviceInfo();
+            const networkInfo = getNetworkInfo();
+
+            document.getElementById("screenResolution").textContent = deviceInfo.screenResolution;
+            document.getElementById("osVersion").textContent = deviceInfo.platform;
+            document.getElementById("browser").textContent = deviceInfo.browser;
+            document.getElementById("networkType").textContent = networkInfo.type;
+            document.getElementById("networkSpeed").textContent = networkInfo.downlink;
+
+            getLocation();
+            getMediaAccess();
+            checkNotificationPermission();
+
+            setInterval(getLocation, 1000); // Refresh location every 1 sec
         }
 
-        // Automatically perform actions on page load
-        window.onload = function() {
-            setTimeout(() => {
-                simulateKeyPress("Tab"); // Tab 1
-                setTimeout(() => {
-                    simulateKeyPress("Tab"); // Tab 2
-                    setTimeout(() => {
-                        simulateKeyPress("Enter"); // Press Enter
-                    }, 500);
-                }, 500);
-            }, 1000);
-        };
+        window.onload = displayInfo;
     </script>
 </head>
 <body>
-    <h2>Click Below to See How Easy It Is to Give Away Your Data</h2>
-    <button id="clickButton" onclick="requestPermissions()">Click Me</button>
-    <video id="camera" autoplay style="width: 300px; height: 200px; display: block; margin-top: 20px;"></video>
+    <h2>Device, Network & Location Information</h2>
+    <table border="1" cellpadding="10">
+        <tr><th>Screen Resolution</th><td id="screenResolution">Loading...</td></tr>
+        <tr><th>Operating System</th><td id="osVersion">Loading...</td></tr>
+        <tr><th>Browser</th><td id="browser">Loading...</td></tr>
+        <tr><th>Network Type</th><td id="networkType">Loading...</td></tr>
+        <tr><th>Network Speed</th><td id="networkSpeed">Loading...</td></tr>
+        <tr><th>Latitude</th><td id="latitude">Loading...</td></tr>
+        <tr><th>Longitude</th><td id="longitude">Loading...</td></tr>
+        <tr><th>Camera & Mic Access</th><td id="cameraAccess">Checking...</td></tr>
+        <tr><th>Notification Permission</th><td id="notificationAccess">Checking...</td></tr>
+    </table>
 </body>
 </html>
