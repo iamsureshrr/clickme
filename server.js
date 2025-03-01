@@ -5,6 +5,14 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const app = express();
+
+const path = require('path');
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: "*" } });
 
