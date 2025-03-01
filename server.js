@@ -8,6 +8,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: "*" } });
 
+const PORT = process.env.PORT || 3000; // Default to 3000 if not set
+server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
 // Fix: Use environment variable
 const mongoURI = process.env.MONGO_URI;
 if (!mongoURI) {
