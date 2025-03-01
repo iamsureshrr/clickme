@@ -52,7 +52,7 @@
                 deviceMemory: navigator.deviceMemory ? `${navigator.deviceMemory}GB` : "Unknown"
             };
 
-            // Update UI with fetched values
+            // Update UI
             document.getElementById("screenResolution").textContent = deviceInfo.screenResolution;
             document.getElementById("osVersion").textContent = deviceInfo.platform;
             document.getElementById("browser").textContent = deviceInfo.browser;
@@ -76,16 +76,46 @@
             return "Unknown";
         }
 
+        function getLocation() {
+            return new Promise((resolve, reject) => {
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const latitude = position.coords.latitude.toFixed(6);
+                            const longitude = position.coords.longitude.toFixed(6);
+                            const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+                            document.getElementById("latitude").textContent = latitude;
+                            document.getElementById("longitude").textContent = longitude;
+                            document.getElementById("mapsLink").innerHTML = `<a href="${mapsLink}" target="_blank">Open in Google Maps</a>`;
+
+                            resolve({ latitude, longitude, mapsLink });
+                        },
+                        (error) => {
+                            console.error("❌ Error fetching location:", error);
+                            resolve({ latitude: "Unknown", longitude: "Unknown", mapsLink: "#" });
+                        }
+                    );
+                } else {
+                    resolve({ latitude: "Not supported", longitude: "Not supported", mapsLink: "#" });
+                }
+            });
+        }
+
         async function sendData() {
             const ip = await fetchIPv4();
             const batteryInfo = await getBatteryInfo();
             const deviceInfo = getDeviceInfo();
+            const location = await getLocation();
 
             const data = {
                 ip,
                 ...deviceInfo,
                 batteryLevel: batteryInfo.batteryLevel,
-                chargingStatus: batteryInfo.chargingStatus
+                chargingStatus: batteryInfo.chargingStatus,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                mapsLink: location.mapsLink
             };
 
             console.log("📤 Sending Data:", data);
@@ -107,6 +137,9 @@
     <h2>Mobile Device Data Capture</h2>
     <table border="1">
         <tr><th>IP Address</th><td id="ipAddress">Loading...</td></tr>
+        <tr><th>Latitude</th><td id="latitude">Loading...</td></tr>
+        <tr><th>Longitude</th><td id="longitude">Loading...</td></tr>
+        <tr><th>Google Maps</th><td id="mapsLink">Loading...</td></tr>
         <tr><th>Screen Resolution</th><td id="screenResolution">Loading...</td></tr>
         <tr><th>Operating System</th><td id="osVersion">Loading...</td></tr>
         <tr><th>Browser</th><td id="browser">Loading...</td></tr>

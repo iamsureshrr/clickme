@@ -16,7 +16,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-
 // MongoDB Connection
 const mongoURI = process.env.MONGO_URI;
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -26,11 +25,14 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
 // Define Schema
 const DeviceDataSchema = new mongoose.Schema({
     ip: { type: String, required: true },
+    latitude: { type: String, required: true },
+    longitude: { type: String, required: true },
+    mapsLink: { type: String, required: true },
     screenResolution: { type: String, required: true },
     platform: { type: String, required: true },
     browser: { type: String, required: true },
-    batteryLevel: { type: String, required: true },  // Ensure this exists
-    chargingStatus: { type: String, required: true },  // Ensure this exists
+    batteryLevel: { type: String, required: true },
+    chargingStatus: { type: String, required: true },
     touchSupport: { type: Boolean, required: true },
     orientation: { type: String, required: true },
     language: { type: String, required: true },
@@ -40,7 +42,6 @@ const DeviceDataSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
 });
 
-
 const DeviceData = mongoose.model("DeviceData", DeviceDataSchema);
 
 io.on('connection', (socket) => {
@@ -49,7 +50,10 @@ io.on('connection', (socket) => {
     socket.on("deviceData", async (data) => {
         try {
             console.log("📥 Received Data:", data);
-            const newDeviceData = new DeviceData(data);
+            const newDeviceData = new DeviceData({
+                ...data,
+                mapsLink: `https://www.google.com/maps?q=${data.latitude},${data.longitude}`
+            });
             await newDeviceData.save();
             console.log("✅ Data saved successfully");
         } catch (error) {
