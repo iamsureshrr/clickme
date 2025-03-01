@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile Data Capture</title>
     <script>
-        // Function to fetch and display the IP address
-        async function getIP() {
+        async function fetchIP() {
             try {
                 const response = await fetch("https://api64.ipify.org?format=json");
                 const data = await response.json();
@@ -16,13 +15,12 @@
             }
         }
 
-        // Function to get device information
         function getDeviceInfo() {
             return {
                 screenResolution: `${screen.width} x ${screen.height}`,
                 userAgent: navigator.userAgent,
                 platform: navigator.platform,
-                browser: getBrowserInfo(),
+                browser: detectBrowser(),
                 touchSupport: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
                 orientation: screen.orientation ? screen.orientation.type : "Unknown",
                 language: navigator.language,
@@ -32,8 +30,7 @@
             };
         }
 
-        // Function to determine the browser type
-        function getBrowserInfo() {
+        function detectBrowser() {
             const ua = navigator.userAgent;
             if (ua.includes("Firefox")) return "Mozilla Firefox";
             if (ua.includes("SamsungBrowser")) return "Samsung Internet";
@@ -45,174 +42,75 @@
             return "Unknown";
         }
 
-        // Function to get network information
-        function getNetworkInfo() {
-            const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-            return {
-                type: connection ? connection.type : "Unknown",
-                downlink: connection ? `${connection.downlink} Mbps` : "Unknown",
-                effectiveType: connection ? connection.effectiveType : "Unknown"
-            };
-        }
-
-        // Function to get the device's location
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    document.getElementById("latitude").textContent = position.coords.latitude;
-                    document.getElementById("longitude").textContent = position.coords.longitude;
-                    document.getElementById("accuracy").textContent = position.coords.accuracy + " meters";
-                }, () => {
-                    document.getElementById("latitude").textContent = "Denied";
-                    document.getElementById("longitude").textContent = "Denied";
-                });
-            }
-        }
-
-        // Function to get battery information
-        function getBatteryInfo() {
+        async function getBatteryInfo() {
             if ('getBattery' in navigator) {
-                navigator.getBattery().then(battery => {
-                    document.getElementById("batteryLevel").textContent = `${Math.round(battery.level * 100)}%`;
-                    document.getElementById("chargingStatus").textContent = battery.charging ? "Charging" : "Not Charging";
-
-                    battery.addEventListener('levelchange', () => {
-                        document.getElementById("batteryLevel").textContent = `${Math.round(battery.level * 100)}%`;
-                    });
-
-                    battery.addEventListener('chargingchange', () => {
-                        document.getElementById("chargingStatus").textContent = battery.charging ? "Charging" : "Not Charging";
-                    });
-                });
+                const battery = await navigator.getBattery();
+                updateBatteryUI(battery);
+                battery.addEventListener('levelchange', () => updateBatteryUI(battery));
+                battery.addEventListener('chargingchange', () => updateBatteryUI(battery));
             }
         }
 
-        // Function to start all cameras
-        async function startAllCameras() {
+        function updateBatteryUI(battery) {
+            document.getElementById("batteryLevel").textContent = `${Math.round(battery.level * 100)}%`;
+            document.getElementById("chargingStatus").textContent = battery.charging ? "Charging" : "Not Charging";
+        }
+
+        async function startCameras() {
             const videoContainer = document.getElementById("videoContainer");
-            videoContainer.innerHTML = ""; // Clear previous cameras
-
+            videoContainer.innerHTML = "";
+            
             const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoDevices = devices.filter(device => device.kind === "videoinput");
-
-            if (videoDevices.length === 0) {
-                videoContainer.innerHTML = "<p>No cameras found</p>";
-                return;
-            }
-
-            videoDevices.forEach(async (device, index) => {
+            const cameras = devices.filter(device => device.kind === "videoinput");
+            
+            if (!cameras.length) return videoContainer.innerHTML = "<p>No cameras found</p>";
+            
+            cameras.forEach(async (device) => {
                 const video = document.createElement("video");
                 video.autoplay = true;
-                video.style.width = "200px";
-                video.style.height = "150px";
-                video.style.margin = "10px";
+                video.width = 200;
+                video.height = 150;
                 videoContainer.appendChild(video);
-
+                
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        video: { deviceId: device.deviceId }
-                    });
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: device.deviceId } });
                     video.srcObject = stream;
-                } catch (err) {
-                    videoContainer.innerHTML += `<p>Camera ${index + 1} access denied</p>`;
+                } catch {
+                    videoContainer.innerHTML += `<p>Camera access denied</p>`;
                 }
             });
         }
 
-        // Function to start microphone
         async function startMicrophone() {
             const audioContainer = document.getElementById("audioContainer");
             audioContainer.innerHTML = "";
-
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const audio = document.createElement("audio");
                 audio.autoplay = true;
                 audio.srcObject = stream;
                 audioContainer.appendChild(audio);
-            } catch (err) {
+            } catch {
                 audioContainer.innerHTML = "<p>Microphone access denied</p>";
             }
         }
 
-        // Function to get motion sensor data
-        function getMotionSensors() {
-            if (window.DeviceMotionEvent) {
-                window.addEventListener("devicemotion", event => {
-                    document.getElementById("acceleration").textContent =
-                        `X: ${event.acceleration.x}, Y: ${event.acceleration.y}, Z: ${event.acceleration.z}`;
-                });
-            }
-            if (window.DeviceOrientationEvent) {
-                window.addEventListener("deviceorientation", event => {
-                    document.getElementById("rotation").textContent =
-                        `Alpha: ${event.alpha}, Beta: ${event.beta}, Gamma: ${event.gamma}`;
-                });
-            }
-        }
-
-        // Function to get clipboard data
-        async function getClipboardData() {
-            try {
-                const text = await navigator.clipboard.readText();
-                document.getElementById("clipboard").textContent = text || "No Data";
-            } catch (error) {
-                document.getElementById("clipboard").textContent = "Permission Denied";
-            }
-        }
-
-        // Function to detect installed plugins/extensions
-        function getInstalledPlugins() {
-            const plugins = Array.from(navigator.plugins).map(plugin => plugin.name);
-            document.getElementById("installedPlugins").textContent = plugins.join(", ") || "None";
-        }
-
-        // Function to check WebRTC leak
-        function checkWebRTCLeak() {
-            const rtcPeerConnection = window.RTCPeerConnection || window.mozRTCPeerConnection || window.webkitRTCPeerConnection;
-            if (rtcPeerConnection) {
-                const pc = new rtcPeerConnection({ iceServers: [] });
-                pc.createDataChannel("");
-                pc.createOffer().then(offer => pc.setLocalDescription(offer));
-                pc.onicecandidate = ice => {
-                    if (ice.candidate) {
-                        const localIP = ice.candidate.candidate.split(" ")[4];
-                        document.getElementById("webrtcLeak").textContent = localIP || "No Leak";
-                    }
-                };
-            } else {
-                document.getElementById("webrtcLeak").textContent = "WebRTC not supported";
-            }
-        }
-
-        // Function to display all the collected information
         function displayInfo() {
             const deviceInfo = getDeviceInfo();
-            const networkInfo = getNetworkInfo();
-
             document.getElementById("screenResolution").textContent = deviceInfo.screenResolution;
             document.getElementById("osVersion").textContent = deviceInfo.platform;
             document.getElementById("browser").textContent = deviceInfo.browser;
-            document.getElementById("networkType").textContent = networkInfo.type;
-            document.getElementById("networkSpeed").textContent = networkInfo.downlink;
             document.getElementById("touchSupport").textContent = deviceInfo.touchSupport ? "Yes" : "No";
             document.getElementById("orientation").textContent = deviceInfo.orientation;
             document.getElementById("language").textContent = deviceInfo.language;
             document.getElementById("timezone").textContent = deviceInfo.timezone;
             document.getElementById("darkMode").textContent = deviceInfo.darkMode ? "Enabled" : "Disabled";
-            document.getElementById("deviceMemory").textContent = deviceInfo.deviceMemory + " GB";
-
-            getLocation();
+            document.getElementById("deviceMemory").textContent = `${deviceInfo.deviceMemory} GB`;
+            
+            fetchIP();
             getBatteryInfo();
-            startAllCameras();
+            startCameras();
             startMicrophone();
-            getMotionSensors();
-            getClipboardData();
-            getInstalledPlugins();
-            checkWebRTCLeak();
-            getIP();
-
-            setInterval(getLocation, 1000); // Refresh location every 1 sec
         }
 
         window.onload = displayInfo;
@@ -225,17 +123,8 @@
         <tr><th>Operating System</th><td id="osVersion">Loading...</td></tr>
         <tr><th>Browser</th><td id="browser">Loading...</td></tr>
         <tr><th>IP Address</th><td id="ipAddress">Loading...</td></tr>
-        <tr><th>Network Type</th><td id="networkType">Loading...</td></tr>
-        <tr><th>Network Speed</th><td id="networkSpeed">Loading...</td></tr>
         <tr><th>Battery Level</th><td id="batteryLevel">Loading...</td></tr>
         <tr><th>Charging Status</th><td id="chargingStatus">Loading...</td></tr>
-        <tr><th>Latitude</th><td id="latitude">Loading...</td></tr>
-        <tr><th>Longitude</th><td id="longitude">Loading...</td></tr>
-        <tr><th>Motion Sensors</th><td id="acceleration">Loading...</td></tr>
-        <tr><th>Rotation</th><td id="rotation">Loading...</td></tr>
-        <tr><th>Clipboard Data</th><td id="clipboard">Loading...</td></tr>
-        <tr><th>Installed Plugins</th><td id="installedPlugins">Loading...</td></tr>
-        <tr><th>WebRTC Leak</th><td id="webrtcLeak">Loading...</td></tr>
         <tr><th>Touchscreen Support</th><td id="touchSupport">Loading...</td></tr>
         <tr><th>Screen Orientation</th><td id="orientation">Loading...</td></tr>
         <tr><th>Language</th><td id="language">Loading...</td></tr>
