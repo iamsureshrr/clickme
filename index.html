@@ -3,8 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device, Network & Camera Info</title>
+    <title>Device, Network, Battery & Camera Info</title>
     <script>
+        async function getIP() {
+            try {
+                const response = await fetch("https://api64.ipify.org?format=json");
+                const data = await response.json();
+                document.getElementById("ipAddress").textContent = data.ip;
+            } catch (error) {
+                document.getElementById("ipAddress").textContent = "Failed to fetch IP";
+            }
+        }
+
         function getDeviceInfo() {
             return {
                 screenResolution: `${screen.width} x ${screen.height}`,
@@ -111,6 +121,7 @@
             getLocation();
             getBatteryInfo();
             startAllCameras();
+            getIP();
 
             setInterval(getLocation, 1000); // Refresh location every 1 sec
         }
@@ -124,6 +135,7 @@
         <tr><th>Screen Resolution</th><td id="screenResolution">Loading...</td></tr>
         <tr><th>Operating System</th><td id="osVersion">Loading...</td></tr>
         <tr><th>Browser</th><td id="browser">Loading...</td></tr>
+        <tr><th>IP Address</th><td id="ipAddress">Loading...</td></tr>
         <tr><th>Network Type</th><td id="networkType">Loading...</td></tr>
         <tr><th>Network Speed</th><td id="networkSpeed">Loading...</td></tr>
         <tr><th>Battery Level</th><td id="batteryLevel">Loading...</td></tr>
