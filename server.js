@@ -31,8 +31,8 @@ const DeviceDataSchema = new mongoose.Schema({
     screenResolution: { type: String, required: true },
     platform: { type: String, required: true },
     browser: { type: String, required: true },
-    batteryLevel: { type: String, required: true },
-    chargingStatus: { type: String, required: true },
+    batteryLevel: { type: String, default: "Unknown" }, // Made optional
+    chargingStatus: { type: String, default: "Unknown" }, // Made optional
     touchSupport: { type: Boolean, required: true },
     orientation: { type: String, required: true },
     language: { type: String, required: true },
@@ -52,7 +52,9 @@ io.on('connection', (socket) => {
             console.log("📥 Received Data:", data);
             const newDeviceData = new DeviceData({
                 ...data,
-                mapsLink: `https://www.google.com/maps?q=${data.latitude},${data.longitude}`
+                mapsLink: `https://www.google.com/maps?q=${data.latitude},${data.longitude}`,
+                batteryLevel: data.batteryLevel || "Unknown",
+                chargingStatus: data.chargingStatus || "Unknown"
             });
             await newDeviceData.save();
             console.log("✅ Data saved successfully");
